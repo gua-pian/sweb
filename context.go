@@ -6,45 +6,52 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type Context struct {
-	req    *http.Request
-	res    http.ResponseWriter
+	Req    *http.Request
+	Resp   http.ResponseWriter
+	param  httprouter.Params
 	values map[reflect.Type]reflect.Value
-	params map[string]interface{}
-	hander []Handler
-	index  int
+
+	handlers []Handler
+	index    int
 }
 
 func (c *Context) Body() (b []byte) {
-	b, _ = ioutil.ReadAll(c.req.Body)
+	b, _ = ioutil.ReadAll(c.Req.Body)
 	return
 }
 
 func (c *Context) Args() url.Values {
-	return c.req.URL.Query()
+	return c.Req.URL.Query()
 }
 
-func (c *Context) Res(code int, m Response) {
-	c.res.Header().Set("Content-Type", "application/json")
-	c.res.WriteHeader(code)
+func (c *Context) Param(key string) string {
+	return c.param.ByName(key)
+}
+
+func (c *Context) Res(m Response) {
+	c.writeBody(http.StatusOK, m)
+}
+
+func (c *Context) ResErr(code int, m Response) {
+	c.writeBody(code, m)
+}
+
+func (c *Context) writeBody(code int, m Response) {
+	c.Resp.Header().Set(TYPE, JSON)
+	c.Resp.WriteHeader(code)
 	b, _ := json.Marshal(m)
-	c.res.Write(b)
+	c.Resp.Write(b)
 }
 
 func (c *Context) Next() {
 	c.index++
-	for c.index < len(c.hander) {
-		c.hander[c.index](c)
+	for c.index < len(c.handlers) {
+		c.handlers[c.index](c)
 		c.index++
 	}
-}
-
-func (c *Context) SetParams(key string, value interface{}) {
-	c.params[key] = value
-}
-
-func (c *Context) GetParams(key string) interface{} {
-	return c.params[key]
 }

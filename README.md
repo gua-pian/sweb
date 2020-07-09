@@ -23,10 +23,15 @@ type FooRequest struct {
 func foo(c *sweb.Context) {
 	var req FooRequest
 	if err := json.Unmarshal(c.Body(), &req); err != nil {
-		c.Res(http.StatusBadRequest, sweb.Response{"status": -1, "info": "parameter error"})
+		c.ResErr(http.StatusBadRequest, sweb.Response{"status": -1, "info": "parameter error"})
 		return
 	}
-	c.Res(http.StatusOK, sweb.Response{"status": 0, "info": "success"})
+	c.Res(sweb.Response{"status": 0, "info": "success"})
+}
+
+func bar(c *sweb.Context) {
+	name := c.Param("name")
+	c.Res(sweb.Response{"name": name})
 }
 
 func logger(c *sweb.Context) {
@@ -38,7 +43,9 @@ func logger(c *sweb.Context) {
 func main() {
 	s := sweb.NewSweb()
 	s.Use(logger)
-	s.Bind("/foo/bar", foo)
+	s.Bind("post", "/foo/bar", foo)
+	s.Any("/bar/:name", bar)
 	log.Fatal(s.Run(3001))
 }
+
 ```
