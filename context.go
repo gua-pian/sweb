@@ -2,6 +2,7 @@ package sweb
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -31,6 +32,11 @@ func (c *Context) Args() url.Values {
 
 func (c *Context) Param(key string) string {
 	return c.param.ByName(key)
+}
+
+func (c *Context) File(name string) (rc io.ReadCloser, err error) {
+	file, _, err := c.Req.FormFile(name)
+	return file, err
 }
 
 func (c *Context) Res(m Response) {
